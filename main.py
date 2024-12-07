@@ -1,6 +1,6 @@
 # 1: Import libraries
 import streamlit as st
-import together
+from groq import Groq
 import json
 
 from infinite_bookshelf.agents import (
@@ -11,21 +11,28 @@ from infinite_bookshelf.agents import (
 from infinite_bookshelf.inference import GenerationStatistics
 from infinite_bookshelf.tools import create_markdown_file, create_pdf_file
 from infinite_bookshelf.ui.components import (
+    render_groq_form,
+    display_statistics,
     render_download_buttons,
 )
 from infinite_bookshelf.ui import Book, load_return_env, ensure_states
 
 
 # 2: Initialize env variables and session states
-TOGETHER_API_KEY = load_return_env(["TOGETHER_API_KEY"])["TOGETHER_API_KEY"]
+GROQ_API_KEY = load_return_env(["GROQ_API_KEY"])["GROQ_API_KEY"]
 
 states = {
-    "api_key": TOGETHER_API_KEY,
+    "api_key": GROQ_API_KEY,
     "button_disabled": False,
     "button_text": "Generate",
     "statistics_text": "",
     "book_title": "",
 }
+
+if GROQ_API_KEY:
+    states["groq"] = (
+        Groq()
+    )  # Define Groq provider if API key provided. Otherwise defined later after API key is provided.
 
 ensure_states(states)
 
@@ -33,7 +40,7 @@ ensure_states(states)
 # 3: Define Streamlit page structure and functionality
 st.write(
     """
-# Infinite Bookshelf: Write full books using Llama 3 models on Together AI
+# Infinite Bookshelf: Write full books using llama3 (8b and 70b) on Groq
 """
 )
 
@@ -43,22 +50,8 @@ with col1:
         "You are using a streamlined version. Try the new [advanced version](/advanced) in beta."
     )
 
-# Add model selection
-model_options = {
-    "Llama 3.3 70B Turbo": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    "Llama 3.1 8B Turbo": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-    "Llama 3.1 70B Turbo": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
-}
-
-selected_model = st.selectbox(
-    "Select Model",
-    list(model_options.keys()),
-    index=0
-)
-
-model = model_options[selected_model]
-
-col2.image("assets/logo/powered-by-together-ai.svg", width=150)
+with col2:
+    st.image("assets/logo/powered-by-groq.svg", width=150)
 
 
 def disable():
@@ -78,7 +71,7 @@ try:
         if "book" in st.session_state:
             render_download_buttons(st.session_state.get("book"))
 
-    submitted, together_input_key, topic_text, additional_instructions = render_groq_form(
+    submitted, groq_input_key, topic_text, additional_instructions = render_groq_form(
         on_submit=disable,
         button_disabled=st.session_state.button_disabled,
         button_text=st.session_state.button_text,
@@ -98,29 +91,27 @@ try:
             placeholder=placeholder, statistics_text=st.session_state.statistics_text
         )
 
-        if not TOGETHER_API_KEY:
-            together_api = together.Together(api_key=together_input_key)
-        else:
-            together_api = together.Together(api_key=TOGETHER_API_KEY)
+        if not GROQ_API_KEY:
+            st.session_state.groq = Groq(api_key=groq_input_key)
 
         # Step 1: Generate book structure using structure_writer agent
         large_model_generation_statistics, book_structure = generate_book_structure(
             prompt=topic_text,
             additional_instructions=additional_instructions,
-            model=model,
-            together_api=together_api,
+            model="llama3-70b-8192",
+            groq_provider=st.session_state.groq,
         )
 
         # Step 2: Generate book title using title_writer agent
         st.session_state.book_title = generate_book_title(
             prompt=topic_text,
-            model=model,
-            together_api=together_api,
+            model="llama3-70b-8192",
+            groq_provider=st.session_state.groq,
         )
 
         st.write(f"## {st.session_state.book_title}")
 
-        total_generation_statistics = GenerationStatistics(model_name=model)
+        total_generation_statistics = GenerationStatistics(model_name="llama3-8b-8192")
 
         # Step 3: Generate book section content using section_writer agent
         try:
@@ -141,8 +132,8 @@ try:
                         content_stream = generate_section(
                             prompt=(title + ": " + content),
                             additional_instructions=additional_instructions,
-                            model=model,
-                            together_api=together_api,
+                            model="llama3-8b-8192",
+                            groq_provider=st.session_state.groq,
                         )
                         for chunk in content_stream:
                             # Check if GenerationStatistics data is returned instead of str tokens
