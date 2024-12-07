@@ -19,19 +19,16 @@ from infinite_bookshelf.ui import Book, load_return_env, ensure_states
 
 
 # 2: Initialize env variables and session states
-TOGETHER_API_KEY = load_return_env(["TOGETHER_API_KEY"])["TOGETHER_API_KEY"]
-
+# Hardcoded API key for testing
+Together.api_key = "f546c52d4d0ac62ef1a314038c21a40eb30e9e68d69aec03a1b46d67e240e768"
 states = {
-    "api_key": TOGETHER_API_KEY,
+    "api_key": Together.api_key,
     "button_disabled": False,
     "button_text": "Generate",
     "statistics_text": "",
     "book_title": "",
+    "together": Together()
 }
-
-if TOGETHER_API_KEY:
-    Together.api_key = TOGETHER_API_KEY  # Correct way to initialize Together AI
-    states["together"] = Together()
 
 ensure_states(states)
 
@@ -89,10 +86,6 @@ try:
         display_statistics(
             placeholder=placeholder, statistics_text=st.session_state.statistics_text
         )
-
-        if not TOGETHER_API_KEY:
-            Together.api_key = together_input_key  # Correct way to set API key
-            st.session_state.together = Together()
 
         # Step 1: Generate book structure using structure_writer agent
         large_model_generation_statistics, book_structure = generate_book_structure(
