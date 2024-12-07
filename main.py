@@ -91,16 +91,18 @@ try:
         large_model_generation_statistics, book_structure = generate_book_structure(
             prompt=topic_text,
             additional_instructions=additional_instructions,
-            model="llama3-70b-8192",
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             together_provider=st.session_state.together,
         )
 
         # Step 2: Generate book title using title_writer agent
-        st.session_state.book_title = generate_book_title(
+        title_generation_statistics, book_title = generate_book_title(
             prompt=topic_text,
-            model="llama3-70b-8192",
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             together_provider=st.session_state.together,
         )
+
+        st.session_state.book_title = book_title
 
         st.write(f"## {st.session_state.book_title}")
 

@@ -21,23 +21,22 @@ def generate_book_structure(
     else:
         USER_PROMPT = f"Write a comprehensive structure, omiting introduction and conclusion sections (forward, author's note, summary), for a book. Only provide up to one level of depth for nested sections. Make clear titles and descriptions that have no overlap with other sections. It is very important that use the following subject and additional instructions to write the book. \n\n<subject>{prompt}</subject>\n\n<additional_instructions>{additional_instructions}</additional_instructions>"
 
-    response = together_provider.complete(
-        prompt=USER_PROMPT,
+    response = together_provider.inference(
         model=model,
+        prompt=USER_PROMPT,
         max_tokens=8000,
         temperature=0.3,
         top_p=1,
-        stop=None,
     )
 
-    usage = response.usage
+    # Since Together API doesn't provide timing info, we'll create a simplified stats object
     statistics_to_return = GenerationStatistics(
-        input_time=usage.prompt_time,
-        output_time=usage.completion_time,
-        input_tokens=usage.prompt_tokens,
-        output_tokens=usage.completion_tokens,
-        total_time=usage.total_time,
+        input_time=0,
+        output_time=0,
+        input_tokens=len(USER_PROMPT.split()),  # Rough estimate
+        output_tokens=len(response['output']['text'].split()),  # Rough estimate
+        total_time=0,
         model_name=model,
     )
 
-    return statistics_to_return, response.output.text
+    return statistics_to_return, response['output']['text']
