@@ -3,13 +3,14 @@ Agent to generate book structure
 """
 
 from ..inference import GenerationStatistics
+import together
 
 
 def generate_book_structure(
     prompt: str,
     additional_instructions: str,
     model: str,
-    groq_provider,
+    together_client,
     long: bool = False,
 ):
     """
@@ -21,34 +22,29 @@ def generate_book_structure(
     else:
         USER_PROMPT = f"Write a comprehensive structure, omiting introduction and conclusion sections (forward, author's note, summary), for a book. Only provide up to one level of depth for nested sections. Make clear titles and descriptions that have no overlap with other sections. It is very important that use the following subject and additional instructions to write the book. \n\n<subject>{prompt}</subject>\n\n<additional_instructions>{additional_instructions}</additional_instructions>"
 
-    completion = groq_provider.chat.completions.create(
+    together.api_key = together_client
+    completion = together.Complete.create(
+        prompt=f'''<system>Write in JSON format:
+
+{{"Title of section goes here":"Description of section goes here",
+"Title of section goes here":{{"Title of section goes here":"Description of section goes here","Title of section goes here":"Description of section goes here","Title of section goes here":"Description of section goes here"}}}}</system>
+<user>{USER_PROMPT}</user>
+<assistant>''',
         model=model,
-        messages=[
-            {
-                "role": "system",
-                "content": 'Write in JSON format:\n\n{"Title of section goes here":"Description of section goes here",\n"Title of section goes here":{"Title of section goes here":"Description of section goes here","Title of section goes here":"Description of section goes here","Title of section goes here":"Description of section goes here"}}',
-            },
-            {
-                "role": "user",
-                "content": USER_PROMPT,
-            },
-        ],
         temperature=0.3,
         max_tokens=8000,
         top_p=1,
-        stream=False,
-        response_format={"type": "json_object"},
-        stop=None,
+        stop=["</assistant>"],
     )
 
-    usage = completion.usage
+    # Together AI doesn't provide detailed timing info like Groq, so we'll simplify the statistics
     statistics_to_return = GenerationStatistics(
-        input_time=usage.prompt_time,
-        output_time=usage.completion_time,
-        input_tokens=usage.prompt_tokens,
-        output_tokens=usage.completion_tokens,
-        total_time=usage.total_time,
+        input_time=0,
+        output_time=0,
+        input_tokens=completion.prompt_tokens,
+        output_tokens=completion.completion_tokens,
+        total_time=0,
         model_name=model,
     )
 
-    return statistics_to_return, completion.choices[0].message.content
+    return completion.output, statistics_to_return
