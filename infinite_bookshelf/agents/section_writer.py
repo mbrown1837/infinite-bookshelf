@@ -2,13 +2,17 @@
 Agent to generate book section content
 """
 
+from together import Together
 from ..inference import GenerationStatistics
 
 
 def generate_section(
-    prompt: str, additional_instructions: str, model: str, together_provider
+    prompt: str, additional_instructions: str, model: str, api_key: str = None
 ):
-    stream = together_provider.chat.completions.create(
+    if api_key:
+        Together.api_key = api_key
+
+    stream = Together().chat.completions.create(
         model=model,
         messages=[
             {

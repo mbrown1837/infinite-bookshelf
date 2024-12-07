@@ -2,14 +2,18 @@
 Agent to generate book title
 """
 
+from together import Together
 from ..inference import GenerationStatistics
 
 
-def generate_book_title(prompt: str, model: str, together_provider):
+def generate_book_title(prompt: str, model: str, api_key: str = None):
     """
     Generate a book title using AI.
     """
-    response = together_provider.chat.completions.create(
+    if api_key:
+        Together.api_key = api_key
+
+    response = Together().chat.completions.create(
         model=model,
         messages=[
             {

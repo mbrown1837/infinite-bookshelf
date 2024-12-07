@@ -17,6 +17,8 @@ from infinite_bookshelf.ui.components import (
 )
 from infinite_bookshelf.ui import Book, load_return_env, ensure_states
 
+MODEL_LIST = ["meta-llama/Llama-3.3-70B-Instruct-Turbo"]
+
 
 # 2: Initialize env variables and session states
 TOGETHER_API_KEY = load_return_env(["TOGETHER_API_KEY"])["TOGETHER_API_KEY"]
@@ -31,7 +33,6 @@ states = {
 
 if TOGETHER_API_KEY:
     Together.api_key = TOGETHER_API_KEY  # Set API key globally
-    states["together"] = Together()  # Create Together client instance
 
 ensure_states(states)
 
@@ -90,40 +91,43 @@ try:
             placeholder=placeholder, statistics_text=st.session_state.statistics_text
         )
 
-        if not TOGETHER_API_KEY:
-            st.session_state.together = Together(api_key=together_input_key)
+        # Set API key if not already set
+        api_key = together_input_key if together_input_key else TOGETHER_API_KEY
 
         # Step 1: Generate book structure using structure_writer agent
         large_model_generation_statistics, book_structure = generate_book_structure(
             prompt=topic_text,
             additional_instructions=additional_instructions,
-            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            together_provider=st.session_state.together,
+            model=MODEL_LIST[0],  # Use first model from list
+            api_key=api_key,
         )
 
         # Step 2: Generate book title using title_writer agent
-        title_generation_statistics, st.session_state.book_title = generate_book_title(
+        title_statistics, book_title = generate_book_title(
             prompt=topic_text,
-            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            together_provider=st.session_state.together,
+            model=MODEL_LIST[0],  # Use first model from list
+            api_key=api_key,
         )
 
+        st.session_state.book_title = book_title
         st.write(f"## {st.session_state.book_title}")
 
+        total_generation_statistics = GenerationStatistics(
+            model_name=MODEL_LIST[0]
+        )
+
+        # Step 3: Generate book section content using section_writer agent
         try:
             book_structure_json = json.loads(book_structure)
-            st.session_state.book = Book(
-                st.session_state.book_title, book_structure_json
-            )
+            book = Book(st.session_state.book_title, book_structure_json)
 
-            total_generation_statistics = large_model_generation_statistics
-            total_generation_statistics.add(title_generation_statistics)
+            if "book" not in st.session_state:
+                st.session_state.book = book
 
-            st.session_state.statistics_text = str(total_generation_statistics)
-            display_statistics(
-                placeholder=placeholder,
-                statistics_text=st.session_state.statistics_text,
-            )
+            # Print the book structure to the terminal to show structure
+            print(json.dumps(book_structure_json, indent=2))
+
+            st.session_state.book.display_structure()
 
             def stream_section_content(sections):
                 for title, content in sections.items():
@@ -131,8 +135,8 @@ try:
                         content_stream = generate_section(
                             prompt=(title + ": " + content),
                             additional_instructions=additional_instructions,
-                            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
-                            together_provider=st.session_state.together,
+                            model=MODEL_LIST[0],  # Use first model from list
+                            api_key=api_key,
                         )
                         for chunk in content_stream:
                             # Check if GenerationStatistics data is returned instead of str tokens
