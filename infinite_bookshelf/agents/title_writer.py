@@ -5,27 +5,44 @@ Agent to generate book title
 from ..inference import GenerationStatistics
 
 
-def generate_book_title(prompt: str, model: str, groq_provider):
+def generate_book_title(
+    prompt: str,
+    additional_instructions: str,
+    model: str,
+    together_provider,
+):
     """
-    Generate a book title using AI.
+    Returns book title content as well as total tokens and total time for generation.
     """
-    completion = groq_provider.chat.completions.create(
-        model="llama3-70b-8192",
+
+    USER_PROMPT = f"Create a compelling and concise book title. Use the following subject and additional instructions to create the title. \n\n<subject>{prompt}</subject>\n\n<additional_instructions>{additional_instructions}</additional_instructions>"
+
+    completion = together_provider.chat.completions.create(
+        model=model,
         messages=[
             {
                 "role": "system",
-                "content": "Generate suitable book titles for the provided topics. There is only one generated book title! Don't give any explanation or add any symbols, just write the title of the book. The requirement for this title is that it must be between 7 and 25 words long, and it must be attractive enough!",
+                "content": "You are an expert at creating compelling book titles. Create a title that is engaging and accurately represents the book's content.",
             },
             {
                 "role": "user",
-                "content": f"Generate a book title for the following topic. There is only one generated book title! Don't give any explanation or add any symbols, just write the title of the book. The requirement for this title is that it must be at least 7 words and 25 words long, and it must be attractive enough:\n\n{prompt}",
+                "content": USER_PROMPT,
             },
         ],
         temperature=0.7,
         max_tokens=100,
         top_p=1,
         stream=False,
-        stop=None,
     )
 
-    return completion.choices[0].message.content.strip()
+    usage = completion.usage
+    statistics_to_return = GenerationStatistics(
+        input_time=usage.prompt_time,
+        output_time=usage.completion_time,
+        input_tokens=usage.prompt_tokens,
+        output_tokens=usage.completion_tokens,
+        total_time=usage.total_time,
+        model_name=model,
+    )
+
+    return statistics_to_return, completion.choices[0].message.content

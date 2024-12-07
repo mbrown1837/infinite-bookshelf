@@ -4,11 +4,12 @@ Component function to render basic prompt input form
 
 import streamlit as st
 
+DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
-def render_groq_form(on_submit, button_disabled=False, button_text="Generate"):
-    with st.form("groqform"):
-        groq_input_key = (
-            st.text_input("Enter your Groq API Key (gsk_yA...):", "", type="password")
+def render_together_form(on_submit, button_disabled=False, button_text="Generate"):
+    with st.form("togetherform"):
+        together_input_key = (
+            st.text_input("Enter your Together API Key:", "", type="password")
             if not st.session_state.get("api_key")
             else None
         )
@@ -32,4 +33,4 @@ def render_groq_form(on_submit, button_disabled=False, button_text="Generate"):
             disabled=button_disabled,
         )
 
-        return submitted, groq_input_key, topic_text, additional_instructions
+        return submitted, together_input_key, topic_text, additional_instructions
