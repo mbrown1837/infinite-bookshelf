@@ -96,33 +96,33 @@ try:
         large_model_generation_statistics, book_structure = generate_book_structure(
             prompt=topic_text,
             additional_instructions=additional_instructions,
-            model="llama3-70b-8192",
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             together_provider=st.session_state.together,
         )
 
         # Step 2: Generate book title using title_writer agent
-        st.session_state.book_title = generate_book_title(
+        title_generation_statistics, st.session_state.book_title = generate_book_title(
             prompt=topic_text,
-            model="llama3-70b-8192",
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
             together_provider=st.session_state.together,
         )
 
         st.write(f"## {st.session_state.book_title}")
 
-        total_generation_statistics = GenerationStatistics(model_name="llama3-8b-8192")
-
-        # Step 3: Generate book section content using section_writer agent
         try:
             book_structure_json = json.loads(book_structure)
-            book = Book(st.session_state.book_title, book_structure_json)
+            st.session_state.book = Book(
+                st.session_state.book_title, book_structure_json
+            )
 
-            if "book" not in st.session_state:
-                st.session_state.book = book
+            total_generation_statistics = large_model_generation_statistics
+            total_generation_statistics.add(title_generation_statistics)
 
-            # Print the book structure to the terminal to show structure
-            print(json.dumps(book_structure_json, indent=2))
-
-            st.session_state.book.display_structure()
+            st.session_state.statistics_text = str(total_generation_statistics)
+            display_statistics(
+                placeholder=placeholder,
+                statistics_text=st.session_state.statistics_text,
+            )
 
             def stream_section_content(sections):
                 for title, content in sections.items():
@@ -130,7 +130,7 @@ try:
                         content_stream = generate_section(
                             prompt=(title + ": " + content),
                             additional_instructions=additional_instructions,
-                            model="llama3-8b-8192",
+                            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
                             together_provider=st.session_state.together,
                         )
                         for chunk in content_stream:

@@ -6,9 +6,9 @@ from ..inference import GenerationStatistics
 
 
 def generate_section(
-    prompt: str, additional_instructions: str, model: str, groq_provider
+    prompt: str, additional_instructions: str, model: str, together_provider
 ):
-    stream = groq_provider.chat.completions.create(
+    stream = together_provider.chat.completions.create(
         model=model,
         messages=[
             {
@@ -24,17 +24,13 @@ def generate_section(
         max_tokens=8000,
         top_p=1,
         stream=True,
-        stop=None,
     )
 
     for chunk in stream:
-        tokens = chunk.choices[0].delta.content
-        if tokens:
-            yield tokens
-        if x_groq := chunk.x_groq:
-            if not x_groq.usage:
-                continue
-            usage = x_groq.usage
+        if chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+        if hasattr(chunk, 'usage') and chunk.usage:
+            usage = chunk.usage
             statistics_to_return = GenerationStatistics(
                 input_time=usage.prompt_time,
                 output_time=usage.completion_time,
