@@ -6,38 +6,23 @@ import together
 from ..inference import GenerationStatistics
 
 
-def generate_book_title(prompt: str, model: str, api_key: str = None):
+def generate_book_title(prompt: str, additional_instructions: str, model: str, api_key: str = None):
     """
-    Generate a book title using AI.
+    Returns book title content as well as total tokens and total time for generation.
     """
     if api_key:
         together.api_key = api_key
 
+    USER_PROMPT = f"Create a title for a book. It is very important that use the following subject and additional instructions to write the book. \n\n<subject>{prompt}</subject>\n\n<additional_instructions>{additional_instructions}</additional_instructions>"
+
+    system_prompt = "You are an expert at creating book titles. Create a title that is catchy, memorable, and relevant to the subject matter. Respond with only the title, no explanation or additional text."
+
     response = together.Complete.create(
-        prompt=[
-            {
-                "role": "system",
-                "content": "Generate suitable book titles for the provided topics. There is only one generated book title! Don't give any explanation or add any symbols, just write the title of the book. The requirement for this title is that it must be between 7 and 25 words long, and it must be attractive enough!",
-            },
-            {
-                "role": "user",
-                "content": f"Generate a book title for the following topic. There is only one generated book title! Don't give any explanation or add any symbols, just write the title of the book. The requirement for this title is that it must be at least 7 words and 25 words long, and it must be attractive enough:\n\n{prompt}",
-            },
-        ],
+        prompt=f"{system_prompt}\n\nHuman: {USER_PROMPT}\n\nAssistant:",
         model=model,
-        temperature=0.7,
         max_tokens=100,
+        temperature=0.7,
         top_p=1,
     )
 
-    usage = response.usage
-    statistics_to_return = GenerationStatistics(
-        input_time=usage.prompt_time,
-        output_time=usage.completion_time,
-        input_tokens=usage.prompt_tokens,
-        output_tokens=usage.completion_tokens,
-        total_time=usage.total_time,
-        model_name=model,
-    )
-
-    return statistics_to_return, response.output.text.strip()
+    return GenerationStatistics(model_name=model), response.output.text
