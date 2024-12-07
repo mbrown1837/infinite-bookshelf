@@ -12,7 +12,7 @@ from infinite_bookshelf.inference import GenerationStatistics
 from infinite_bookshelf.tools import create_markdown_file, create_pdf_file
 from infinite_bookshelf.ui.components import (
     render_groq_form,
-    render_advanced_groq_form,
+    render_advanced_together_form,
     display_statistics,
     render_download_buttons,
 )
@@ -65,7 +65,7 @@ try:
 
     (
         submitted,
-        groq_input_key,
+        together_input_key,
         topic_text,
         additional_instructions,
         writing_style,
@@ -75,7 +75,7 @@ try:
         title_agent_model,
         structure_agent_model,
         section_agent_model,
-    ) = render_advanced_groq_form(
+    ) = render_advanced_together_form(
         on_submit=disable,
         button_disabled=st.session_state.button_disabled,
         button_text=st.session_state.button_text,
@@ -109,7 +109,7 @@ try:
         )
 
         if not GROQ_API_KEY:
-            st.session_state.groq = Groq(api_key=groq_input_key)
+            st.session_state.groq = Groq(api_key=together_input_key)
 
         # Step 1: Generate book structure using structure_writer agent
         additional_instructions_prompt = (

@@ -7,7 +7,7 @@ MODEL_LIST = [
 ]
 
 
-def render_advanced_groq_form(on_submit, button_disabled=False, button_text="Generate"):
+def render_advanced_together_form(on_submit, button_disabled=False, button_text="Generate"):
     st.sidebar.title("Select AI Models")
 
     # Sidebar content
@@ -39,20 +39,20 @@ def render_advanced_groq_form(on_submit, button_disabled=False, button_text="Gen
             help="Generates content for each section of the book",
         )
         st.markdown("\n")
-        st.image("assets/logo/powered-by-groq.svg", width=150)
+        st.image("assets/logo/powered-by-together.svg", width=150)
 
-    with st.form("groqform"):
+    with st.form("togetherform"):
         st.info(
             "You are using advanced mode with additional features. Visit [here](/) to use the streamlined version."
         )
 
         if not st.session_state.get("api_key"):
             st.subheader("API Key")
-            groq_input_key = st.text_input(
-                "Enter your Groq API Key (gsk_yA...):", "", type="password"
+            together_input_key = st.text_input(
+                "Enter your Together API Key:", "", type="password"
             )
         else:
-            groq_input_key = None
+            together_input_key = None
 
         st.subheader("Topic")
         topic_text = st.text_input(
@@ -102,7 +102,7 @@ def render_advanced_groq_form(on_submit, button_disabled=False, button_text="Gen
 
     return (
         submitted,
-        groq_input_key,
+        together_input_key,
         topic_text,
         additional_instructions,
         writing_style,
