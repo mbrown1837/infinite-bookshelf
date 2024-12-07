@@ -30,7 +30,8 @@ states = {
 }
 
 if TOGETHER_API_KEY:
-    states["together"] = Together()  # Define Together provider if API key provided.
+    Together.api_key = TOGETHER_API_KEY  # Correct way to initialize Together AI
+    states["together"] = Together()
 
 ensure_states(states)
 
@@ -90,7 +91,8 @@ try:
         )
 
         if not TOGETHER_API_KEY:
-            st.session_state.together = Together(api_key=together_input_key)
+            Together.api_key = together_input_key  # Correct way to set API key
+            st.session_state.together = Together()
 
         # Step 1: Generate book structure using structure_writer agent
         large_model_generation_statistics, book_structure = generate_book_structure(
