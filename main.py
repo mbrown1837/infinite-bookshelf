@@ -30,7 +30,8 @@ states = {
 }
 
 if TOGETHER_API_KEY:
-    states["together"] = Together()  # Define Together provider if API key provided.
+    Together.api_key = TOGETHER_API_KEY  # Set API key globally
+    states["together"] = Together()  # Create Together client instance
 
 ensure_states(states)
 
