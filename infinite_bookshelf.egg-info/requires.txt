@@ -1,0 +1,4 @@
+streamlit
+together
+python-dotenv
+fpdf2

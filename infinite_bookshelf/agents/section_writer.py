@@ -2,7 +2,7 @@
 Agent to generate book section content
 """
 
-from together import Together
+import together
 from ..inference import GenerationStatistics
 
 
@@ -10,11 +10,10 @@ def generate_section(
     prompt: str, additional_instructions: str, model: str, api_key: str = None
 ):
     if api_key:
-        Together.api_key = api_key
+        together.api_key = api_key
 
-    stream = Together().chat.completions.create(
-        model=model,
-        messages=[
+    response = together.Complete.create(
+        prompt=[
             {
                 "role": "system",
                 "content": "You are an expert writer. Generate a long, comprehensive, structured chapter for the section provided. If additional instructions are provided, consider them very important. Only output the content.",
@@ -24,15 +23,16 @@ def generate_section(
                 "content": f"Generate a long, comprehensive, structured chapter. Use the following section and important instructions:\n\n<section_title>{prompt}</section_title>\n\n<additional_instructions>{additional_instructions}</additional_instructions>",
             },
         ],
+        model=model,
         temperature=0.3,
         max_tokens=8000,
         top_p=1,
         stream=True,
     )
 
-    for chunk in stream:
-        if chunk.choices[0].delta.content:
-            yield chunk.choices[0].delta.content
+    for chunk in response:
+        if chunk.output:
+            yield chunk.output.text
         if hasattr(chunk, 'usage') and chunk.usage:
             usage = chunk.usage
             statistics_to_return = GenerationStatistics(
