@@ -5,12 +5,12 @@ Agent to generate book title
 from ..inference import GenerationStatistics
 
 
-def generate_book_title(prompt: str, model: str, together_provider):
+def generate_book_title(prompt: str, model: str, groq_provider):
     """
     Generate a book title using AI.
     """
-    response = together_provider.chat.completions.create(
-        model=model,
+    completion = groq_provider.chat.completions.create(
+        model="llama3-70b-8192",
         messages=[
             {
                 "role": "system",
@@ -23,17 +23,9 @@ def generate_book_title(prompt: str, model: str, together_provider):
         ],
         temperature=0.7,
         max_tokens=100,
-        top_p=1
+        top_p=1,
+        stream=False,
+        stop=None,
     )
 
-    # Create statistics object
-    statistics_to_return = GenerationStatistics(
-        input_time=0,
-        output_time=0,
-        input_tokens=response.usage.prompt_tokens if hasattr(response, 'usage') else len(prompt.split()),
-        output_tokens=response.usage.completion_tokens if hasattr(response, 'usage') else 0,
-        total_time=0,
-        model_name=model,
-    )
-
-    return statistics_to_return, response.choices[0].message.content.strip()
+    return completion.choices[0].message.content.strip()

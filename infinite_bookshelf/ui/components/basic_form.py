@@ -7,6 +7,12 @@ import streamlit as st
 
 def render_groq_form(on_submit, button_disabled=False, button_text="Generate"):
     with st.form("groqform"):
+        together_input_key = (
+            st.text_input("Enter your Together AI API Key:", "", type="password")
+            if not st.session_state.get("api_key")
+            else None
+        )
+
         topic_text = st.text_input(
             "What do you want the book to be about?",
             value="",
@@ -26,4 +32,4 @@ def render_groq_form(on_submit, button_disabled=False, button_text="Generate"):
             disabled=button_disabled,
         )
 
-        return submitted, None, topic_text, additional_instructions
+        return submitted, together_input_key, topic_text, additional_instructions

@@ -46,6 +46,16 @@ def render_advanced_groq_form(on_submit, button_disabled=False, button_text="Gen
             "You are using advanced mode with additional features. Visit [here](/) to use the streamlined version."
         )
 
+        if not st.session_state.get("api_key"):
+            st.subheader("API Key")
+            together_input_key = st.text_input(
+                "Enter your Together AI API Key:",
+                "",
+                type="password"
+            )
+        else:
+            together_input_key = None
+
         st.subheader("Topic")
         topic_text = st.text_input(
             "What do you want the book to be about?",
@@ -94,6 +104,7 @@ def render_advanced_groq_form(on_submit, button_disabled=False, button_text="Gen
 
     return (
         submitted,
+        together_input_key,
         topic_text,
         additional_instructions,
         writing_style,

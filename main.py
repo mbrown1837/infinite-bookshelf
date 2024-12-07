@@ -19,16 +19,18 @@ from infinite_bookshelf.ui import Book, load_return_env, ensure_states
 
 
 # 2: Initialize env variables and session states
-# Hardcoded API key for testing
-Together.api_key = "f546c52d4d0ac62ef1a314038c21a40eb30e9e68d69aec03a1b46d67e240e768"
+TOGETHER_API_KEY = load_return_env(["TOGETHER_API_KEY"])["TOGETHER_API_KEY"]
+
 states = {
-    "api_key": Together.api_key,
+    "api_key": TOGETHER_API_KEY,
     "button_disabled": False,
     "button_text": "Generate",
     "statistics_text": "",
     "book_title": "",
-    "together": Together()
 }
+
+if TOGETHER_API_KEY:
+    states["together"] = Together()  # Define Together provider if API key provided.
 
 ensure_states(states)
 
@@ -87,22 +89,23 @@ try:
             placeholder=placeholder, statistics_text=st.session_state.statistics_text
         )
 
+        if not TOGETHER_API_KEY:
+            st.session_state.together = Together(api_key=together_input_key)
+
         # Step 1: Generate book structure using structure_writer agent
         large_model_generation_statistics, book_structure = generate_book_structure(
             prompt=topic_text,
             additional_instructions=additional_instructions,
-            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            model="llama3-70b-8192",
             together_provider=st.session_state.together,
         )
 
         # Step 2: Generate book title using title_writer agent
-        title_generation_statistics, book_title = generate_book_title(
+        st.session_state.book_title = generate_book_title(
             prompt=topic_text,
-            model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            model="llama3-70b-8192",
             together_provider=st.session_state.together,
         )
-
-        st.session_state.book_title = book_title
 
         st.write(f"## {st.session_state.book_title}")
 
