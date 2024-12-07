@@ -9,7 +9,7 @@ def generate_book_structure(
     prompt: str,
     additional_instructions: str,
     model: str,
-    groq_provider,
+    together_provider,
     long: bool = False,
 ):
     """
@@ -21,27 +21,16 @@ def generate_book_structure(
     else:
         USER_PROMPT = f"Write a comprehensive structure, omiting introduction and conclusion sections (forward, author's note, summary), for a book. Only provide up to one level of depth for nested sections. Make clear titles and descriptions that have no overlap with other sections. It is very important that use the following subject and additional instructions to write the book. \n\n<subject>{prompt}</subject>\n\n<additional_instructions>{additional_instructions}</additional_instructions>"
 
-    completion = groq_provider.chat.completions.create(
+    response = together_provider.complete(
+        prompt=USER_PROMPT,
         model=model,
-        messages=[
-            {
-                "role": "system",
-                "content": 'Write in JSON format:\n\n{"Title of section goes here":"Description of section goes here",\n"Title of section goes here":{"Title of section goes here":"Description of section goes here","Title of section goes here":"Description of section goes here","Title of section goes here":"Description of section goes here"}}',
-            },
-            {
-                "role": "user",
-                "content": USER_PROMPT,
-            },
-        ],
-        temperature=0.3,
         max_tokens=8000,
+        temperature=0.3,
         top_p=1,
-        stream=False,
-        response_format={"type": "json_object"},
         stop=None,
     )
 
-    usage = completion.usage
+    usage = response.usage
     statistics_to_return = GenerationStatistics(
         input_time=usage.prompt_time,
         output_time=usage.completion_time,
@@ -51,4 +40,4 @@ def generate_book_structure(
         model_name=model,
     )
 
-    return statistics_to_return, completion.choices[0].message.content
+    return statistics_to_return, response.output.text
