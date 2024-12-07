@@ -1,13 +1,9 @@
 import streamlit as st
 
-MODEL_LIST = [
-    "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
-    "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
-]
+MODEL_LIST = ["llama3-70b-8192", "llama3-8b-8192", "gemma2-9b-it"]
 
 
-def render_advanced_together_form(on_submit, button_disabled=False, button_text="Generate"):
+def render_advanced_groq_form(on_submit, button_disabled=False, button_text="Generate"):
     st.sidebar.title("Select AI Models")
 
     # Sidebar content
@@ -39,20 +35,20 @@ def render_advanced_together_form(on_submit, button_disabled=False, button_text=
             help="Generates content for each section of the book",
         )
         st.markdown("\n")
-        st.image("assets/logo/powered-by-together.svg", width=150)
+        st.image("assets/logo/powered-by-groq.svg", width=150)
 
-    with st.form("togetherform"):
+    with st.form("groqform"):
         st.info(
             "You are using advanced mode with additional features. Visit [here](/) to use the streamlined version."
         )
 
         if not st.session_state.get("api_key"):
             st.subheader("API Key")
-            together_input_key = st.text_input(
-                "Enter your Together API Key:", "", type="password"
+            groq_input_key = st.text_input(
+                "Enter your Groq API Key (gsk_yA...):", "", type="password"
             )
         else:
-            together_input_key = None
+            groq_input_key = None
 
         st.subheader("Topic")
         topic_text = st.text_input(
@@ -102,7 +98,7 @@ def render_advanced_together_form(on_submit, button_disabled=False, button_text=
 
     return (
         submitted,
-        together_input_key,
+        groq_input_key,
         topic_text,
         additional_instructions,
         writing_style,
