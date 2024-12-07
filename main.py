@@ -17,6 +17,7 @@ from infinite_bookshelf.ui.components import (
 )
 from infinite_bookshelf.ui import Book, load_return_env, ensure_states
 
+
 # 2: Initialize env variables and session states
 TOGETHER_API_KEY = load_return_env(["TOGETHER_API_KEY"])["TOGETHER_API_KEY"]
 
@@ -74,92 +75,91 @@ try:
         button_text=st.session_state.button_text,
     )
 
-    try:
-        if submitted:
-            placeholder = st.empty()
-            display_statistics(
-                placeholder=placeholder, statistics_text=st.session_state.statistics_text
-            )
+    if submitted:
+        if len(topic_text) < 10:
+            raise ValueError("Book topic must be at least 10 characters long")
 
-            if not TOGETHER_API_KEY:
-                st.session_state.together = Together(api_key=together_input_key)
+        st.session_state.button_disabled = True
+        st.session_state.statistics_text = (
+            "Generating book title and structure in background...."
+        )
 
-            if len(topic_text) < 10:
-                raise ValueError("Book topic must be at least 10 characters long")
+        placeholder = st.empty()
+        display_statistics(
+            placeholder=placeholder, statistics_text=st.session_state.statistics_text
+        )
 
-            st.session_state.button_disabled = True
-            st.session_state.statistics_text = (
-                "Generating book title and structure in background...."
-            )
+        if not TOGETHER_API_KEY:
+            st.session_state.together = Together(api_key=together_input_key)
 
-            # Step 1: Generate book structure using structure_writer agent
-            large_model_generation_statistics, book_structure = generate_book_structure(
-                prompt=topic_text,
-                additional_instructions=additional_instructions,
-                model="meta-llama-3-13b",
-                together_provider=st.session_state.together,
-            )
+        # Step 1: Generate book structure using structure_writer agent
+        large_model_generation_statistics, book_structure = generate_book_structure(
+            prompt=topic_text,
+            additional_instructions=additional_instructions,
+            model="meta-llama-3-13b",
+            together_provider=st.session_state.together,
+        )
 
-            # Step 2: Generate book title using title_writer agent
-            st.session_state.book_title = generate_book_title(
-                prompt=topic_text,
-                model="meta-llama-3-13b",
-                together_provider=st.session_state.together,
-            )
+        # Step 2: Generate book title using title_writer agent
+        st.session_state.book_title = generate_book_title(
+            prompt=topic_text,
+            model="meta-llama-3-13b",
+            together_provider=st.session_state.together,
+        )
 
-            st.write(f"## {st.session_state.book_title}")
+        st.write(f"## {st.session_state.book_title}")
 
-            total_generation_statistics = GenerationStatistics(model_name="meta-llama-3-7b")
+        total_generation_statistics = GenerationStatistics(model_name="meta-llama-3-7b")
 
-            # Step 3: Generate book section content using section_writer agent
-            try:
-                book_structure_json = json.loads(book_structure)
-                book = Book(st.session_state.book_title, book_structure_json)
+        # Step 3: Generate book section content using section_writer agent
+        try:
+            book_structure_json = json.loads(book_structure)
+            book = Book(st.session_state.book_title, book_structure_json)
 
-                if "book" not in st.session_state:
-                    st.session_state.book = book
+            if "book" not in st.session_state:
+                st.session_state.book = book
 
-                # Print the book structure to the terminal to show structure
-                print(json.dumps(book_structure_json, indent=2))
+            # Print the book structure to the terminal to show structure
+            print(json.dumps(book_structure_json, indent=2))
 
-                st.session_state.book.display_structure()
+            st.session_state.book.display_structure()
 
-                def stream_section_content(sections):
-                    for title, content in sections.items():
-                        if isinstance(content, str):
-                            content_stream = generate_section(
-                                prompt=(title + ": " + content),
-                                additional_instructions=additional_instructions,
-                                model="meta-llama-3-7b",
-                                together_provider=st.session_state.together,
-                            )
-                            for chunk in content_stream:
-                                # Check if GenerationStatistics data is returned instead of str tokens
-                                chunk_data = chunk
-                                if type(chunk_data) == GenerationStatistics:
-                                    total_generation_statistics.add(chunk_data)
+            def stream_section_content(sections):
+                for title, content in sections.items():
+                    if isinstance(content, str):
+                        content_stream = generate_section(
+                            prompt=(title + ": " + content),
+                            additional_instructions=additional_instructions,
+                            model="meta-llama-3-7b",
+                            together_provider=st.session_state.together,
+                        )
+                        for chunk in content_stream:
+                            # Check if GenerationStatistics data is returned instead of str tokens
+                            chunk_data = chunk
+                            if type(chunk_data) == GenerationStatistics:
+                                total_generation_statistics.add(chunk_data)
 
-                                    st.session_state.statistics_text = str(
-                                        total_generation_statistics
-                                    )
-                                    display_statistics(
-                                        placeholder=placeholder,
-                                        statistics_text=st.session_state.statistics_text,
-                                    )
+                                st.session_state.statistics_text = str(
+                                    total_generation_statistics
+                                )
+                                display_statistics(
+                                    placeholder=placeholder,
+                                    statistics_text=st.session_state.statistics_text,
+                                )
 
-                                elif chunk != None:
-                                    st.session_state.book.update_content(title, chunk)
-                        elif isinstance(content, dict):
-                            stream_section_content(content)
+                            elif chunk != None:
+                                st.session_state.book.update_content(title, chunk)
+                    elif isinstance(content, dict):
+                        stream_section_content(content)
 
-                stream_section_content(book_structure_json)
+            stream_section_content(book_structure_json)
 
-            except json.JSONDecodeError:
-                st.error("Failed to decode the book structure. Please try again.")
+        except json.JSONDecodeError:
+            st.error("Failed to decode the book structure. Please try again.")
 
-    except Exception as e:
-        st.session_state.button_disabled = False
-        st.error(e)
+except Exception as e:
+    st.session_state.button_disabled = False
+    st.error(e)
 
-        if st.button("Clear"):
-            st.rerun()
+    if st.button("Clear"):
+        st.rerun()
