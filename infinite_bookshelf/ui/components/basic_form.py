@@ -7,8 +7,8 @@ import streamlit as st
 
 def render_groq_form(on_submit, button_disabled=False, button_text="Generate"):
     with st.form("groqform"):
-        together_input_key = (
-            st.text_input("Enter your Together AI API Key:", "", type="password")
+        groq_input_key = (
+            st.text_input("Enter your Groq API Key (gsk_yA...):", "", type="password")
             if not st.session_state.get("api_key")
             else None
         )
@@ -32,4 +32,4 @@ def render_groq_form(on_submit, button_disabled=False, button_text="Generate"):
             disabled=button_disabled,
         )
 
-        return submitted, together_input_key, topic_text, additional_instructions
+        return submitted, groq_input_key, topic_text, additional_instructions

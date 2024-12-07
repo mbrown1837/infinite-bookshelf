@@ -1,10 +1,6 @@
-"""
-Advanced page for book generation with more control
-"""
-
 # 1: Import libraries
 import streamlit as st
-from together import Together
+from groq import Groq
 import json
 
 from infinite_bookshelf.agents import (
@@ -24,19 +20,20 @@ from infinite_bookshelf.ui import Book, load_return_env, ensure_states
 
 
 # 2: Initialize env variables and session states
-TOGETHER_API_KEY = load_return_env(["TOGETHER_API_KEY"])["TOGETHER_API_KEY"]
+GROQ_API_KEY = load_return_env(["GROQ_API_KEY"])["GROQ_API_KEY"]
 
 states = {
-    "api_key": TOGETHER_API_KEY,
+    "api_key": GROQ_API_KEY,
     "button_disabled": False,
     "button_text": "Generate",
     "statistics_text": "",
     "book_title": "",
 }
 
-if TOGETHER_API_KEY:
-    Together.api_key = TOGETHER_API_KEY  # Set API key globally
-    states["together"] = Together()  # Create Together client instance
+if GROQ_API_KEY:
+    states["groq"] = (
+        Groq()
+    )  # Define Groq provider if API key provided. Otherwise defined later after API key is provided.
 
 ensure_states(states)
 
@@ -44,7 +41,7 @@ ensure_states(states)
 # 3: Define Streamlit page structure and functionality
 st.write(
     """
-# Infinite Bookshelf: Write full books using Together AI's LLaMA 3 Models
+# Infinite Bookshelf: Write full books using llama3 (8b and 70b) on Groq
 """
 )
 
@@ -68,7 +65,7 @@ try:
 
     (
         submitted,
-        together_input_key,
+        groq_input_key,
         topic_text,
         additional_instructions,
         writing_style,
@@ -111,8 +108,8 @@ try:
             placeholder=placeholder, statistics_text=st.session_state.statistics_text
         )
 
-        if not TOGETHER_API_KEY:
-            Together.api_key = together_input_key
+        if not GROQ_API_KEY:
+            st.session_state.groq = Groq(api_key=groq_input_key)
 
         # Step 1: Generate book structure using structure_writer agent
         additional_instructions_prompt = (
@@ -125,15 +122,15 @@ try:
             prompt=topic_text,
             additional_instructions=additional_instructions_prompt,
             model=structure_agent_model,
-            together_provider=Together(),  # Use Together provider
-            long=True  # Use longer version in advanced
+            groq_provider=st.session_state.groq,
+            long=True # Use longer version in advanced
         )
 
         # Step 2: Generate book title using title_writer agent
         st.session_state.book_title = generate_book_title(
             prompt=topic_text,
             model=title_agent_model,
-            together_provider=Together(),  # Use Together provider
+            groq_provider=st.session_state.groq,
         )
 
         st.write(f"## {st.session_state.book_title}")
@@ -166,7 +163,7 @@ try:
                             prompt=(title + ": " + content),
                             additional_instructions=additional_instructions_prompt,
                             model=section_agent_model,
-                            together_provider=Together(),  # Use Together provider
+                            groq_provider=st.session_state.groq,
                         )
                         for chunk in content_stream:
                             # Check if GenerationStatistics data is returned instead of str tokens

@@ -1,6 +1,6 @@
 # 1: Import libraries
 import streamlit as st
-from together import Together
+from groq import Groq
 import json
 
 from infinite_bookshelf.agents import (
@@ -17,22 +17,22 @@ from infinite_bookshelf.ui.components import (
 )
 from infinite_bookshelf.ui import Book, load_return_env, ensure_states
 
-MODEL_LIST = ["meta-llama/Llama-3.3-70B-Instruct-Turbo"]
-
 
 # 2: Initialize env variables and session states
-TOGETHER_API_KEY = load_return_env(["TOGETHER_API_KEY"])["TOGETHER_API_KEY"]
+GROQ_API_KEY = load_return_env(["GROQ_API_KEY"])["GROQ_API_KEY"]
 
 states = {
-    "api_key": TOGETHER_API_KEY,
+    "api_key": GROQ_API_KEY,
     "button_disabled": False,
     "button_text": "Generate",
     "statistics_text": "",
     "book_title": "",
 }
 
-if TOGETHER_API_KEY:
-    Together.api_key = TOGETHER_API_KEY  # Set API key globally
+if GROQ_API_KEY:
+    states["groq"] = (
+        Groq()
+    )  # Define Groq provider if API key provided. Otherwise defined later after API key is provided.
 
 ensure_states(states)
 
@@ -40,7 +40,7 @@ ensure_states(states)
 # 3: Define Streamlit page structure and functionality
 st.write(
     """
-# Infinite Bookshelf: Write full books using Together AI's LLaMA 3 Models
+# Infinite Bookshelf: Write full books using llama3 (8b and 70b) on Groq
 """
 )
 
@@ -51,7 +51,7 @@ with col1:
     )
 
 with col2:
-    st.image("assets/logo/powered-by-together.png", width=150)
+    st.image("assets/logo/powered-by-groq.svg", width=150)
 
 
 def disable():
@@ -71,7 +71,7 @@ try:
         if "book" in st.session_state:
             render_download_buttons(st.session_state.get("book"))
 
-    submitted, together_input_key, topic_text, additional_instructions = render_groq_form(
+    submitted, groq_input_key, topic_text, additional_instructions = render_groq_form(
         on_submit=disable,
         button_disabled=st.session_state.button_disabled,
         button_text=st.session_state.button_text,
@@ -91,30 +91,27 @@ try:
             placeholder=placeholder, statistics_text=st.session_state.statistics_text
         )
 
-        # Set API key if not already set
-        api_key = together_input_key if together_input_key else TOGETHER_API_KEY
+        if not GROQ_API_KEY:
+            st.session_state.groq = Groq(api_key=groq_input_key)
 
         # Step 1: Generate book structure using structure_writer agent
         large_model_generation_statistics, book_structure = generate_book_structure(
             prompt=topic_text,
             additional_instructions=additional_instructions,
-            model=MODEL_LIST[0],  # Use first model from list
-            api_key=api_key,
+            model="llama3-70b-8192",
+            groq_provider=st.session_state.groq,
         )
 
         # Step 2: Generate book title using title_writer agent
-        title_statistics, book_title = generate_book_title(
+        st.session_state.book_title = generate_book_title(
             prompt=topic_text,
-            model=MODEL_LIST[0],  # Use first model from list
-            api_key=api_key,
+            model="llama3-70b-8192",
+            groq_provider=st.session_state.groq,
         )
 
-        st.session_state.book_title = book_title
         st.write(f"## {st.session_state.book_title}")
 
-        total_generation_statistics = GenerationStatistics(
-            model_name=MODEL_LIST[0]
-        )
+        total_generation_statistics = GenerationStatistics(model_name="llama3-8b-8192")
 
         # Step 3: Generate book section content using section_writer agent
         try:
@@ -135,8 +132,8 @@ try:
                         content_stream = generate_section(
                             prompt=(title + ": " + content),
                             additional_instructions=additional_instructions,
-                            model=MODEL_LIST[0],  # Use first model from list
-                            api_key=api_key,
+                            model="llama3-8b-8192",
+                            groq_provider=st.session_state.groq,
                         )
                         for chunk in content_stream:
                             # Check if GenerationStatistics data is returned instead of str tokens
